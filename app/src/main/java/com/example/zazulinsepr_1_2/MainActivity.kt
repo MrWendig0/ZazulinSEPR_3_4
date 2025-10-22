@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation()
 
         createNotificationChannels()
+        requestNotificationPermissionIfNeeded()
     }
 
     private val requestPermissionLauncher =

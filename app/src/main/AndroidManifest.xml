@@ -22,6 +22,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".ChatReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <!-- Действие "Ответить" в уведомлении чата -->
+                <action android:name="REPLY_ACTION" />
+                <!-- Действие "Пометить как прочитанное" -->
+                <action android:name="MARK_READ_ACTION" />
+            </intent-filter>
+        </receiver>
+
 
     </application>
 
