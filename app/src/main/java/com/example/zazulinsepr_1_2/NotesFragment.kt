@@ -2,12 +2,18 @@ package com.example.zazulinsepr_1_2
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
-import com.google.android.material.snackbar.Snackbar
+import androidx.recyclerview.widget.RecyclerView
+import com.example.zazulinsepr_1_2.data.Note
+import com.example.zazulinsepr_1_2.data.NoteDao
+import com.example.zazulinsepr_1_2.viewmodel.NotesAdapter
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.recyclerview.widget.LinearLayoutManager
+
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -21,42 +27,79 @@ private const val ARG_PARAM2 = "param2"
  */
 class NotesFragment : Fragment() {
     // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_notes, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var textViewEmpty: TextView
+    override fun onViewCreated(view: View, savedInstanceState:
+    Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val saveButton = view.findViewById<Button>(R.id.btnSaveNote)
-        saveButton.setOnClickListener {
-            showSaveConfirmationSnackbar(view)
+// Находим View элементы по ID
+        recyclerView = view.findViewById(R.id.rvNotes)
+        textViewEmpty = view.findViewById(R.id.tvEmpty)
+        val buttonAdd = view.findViewById<Button>(R.id.btnAddNote)
+// Получаем доступ к базе данных
+        val database = AppDatabase.getDatabase(requireContext())
+        val noteDao = database.noteDao()
+// 1. Настраиваем кнопку добавления
+        buttonAdd.setOnClickListener {
+            addNewNote(noteDao)
+        }
+// 2. Показываем список заметок
+
+        showNotesList(noteDao)
+
+    }
+    /**
+     * Добавляет новую тестовую заметку в базу
+     */
+    private fun addNewNote(noteDao: NoteDao) {
+// Запускаем в фоновом потоке (база данных не может работать в основном потоке UI)
+        lifecycleScope.launch {
+// Создаем новую заметку
+            val note = Note(
+                title = "Заметка от {System.currentTimeMillis()}",
+            content = "Это тестовое содержимое заметки"
+            )
+// Добавляем в базу
+            noteDao.insert(note)
+// Показываем сообщение
+            Toast.makeText(requireContext(), "Заметка добавлена!", Toast.LENGTH_SHORT).show()
         }
     }
+    /**
+     * Показывает список заметок и автоматически обновляет его
+     */
+    private fun showNotesList(noteDao: NoteDao) {
+// Наблюдаем за изменениями в базе данных
+        noteDao.getAllNotes().observe(viewLifecycleOwner) { notes ->
+            if (notes.isEmpty()) {
+// Если заметок нет - показываем текст "пусто"
+                textViewEmpty.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
 
-    private fun showSaveConfirmationSnackbar(view: View) {
-        Snackbar.make(view, "Заметка сохранена успешно!", Snackbar.LENGTH_LONG)
-            .setAction("Отменить") {
-                onSaveCancelled()
-            }.show()
+            } else {
+// Если есть заметки - показываем список
+                textViewEmpty.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+// Создаем и настраиваем адаптер
+
+                val adapter = NotesAdapter(notes) { note ->
+// Обработчик клика - удаляем заметку
+                    deleteNote(noteDao, note)
+                }
+                recyclerView.adapter = adapter
+                recyclerView.layoutManager = LinearLayoutManager(requireContext())
+            }
+        }
     }
-
-    private fun onSaveCancelled() {
-        Toast.makeText(requireContext(), "Сохранение отменено", Toast.LENGTH_SHORT).show()
+    /**
+     * Удаляет заметку при клике на нее
+     */
+    private fun deleteNote(noteDao: NoteDao, note: Note) {
+        lifecycleScope.launch {
+            noteDao.delete(note)
+            Toast.makeText(requireContext(), "Заметка удалена",
+                Toast.LENGTH_SHORT).show()
+        }
     }
 
 

@@ -2,21 +2,30 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#2196F3"
-    android:gravity="center"
-    android:orientation="vertical">
-    <TextView
-        android:background="#00fff7"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Заметки"
-        android:textSize="24sp"
-        android:textColor="#000000"
-        android:textStyle="bold" />
-    <Button
-        android:id="@+id/btnSaveNote"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Сохранить заметку" />
+    android:orientation="vertical"
+    android:padding="16dp">
 
+    <Button
+        android:id="@+id/btnAddNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Добавить тестовую заметку"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Заметок пока нет\nНажмите кнопку выше чтобы добавить"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginTop="16dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvNotes"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Список заметок"/>
 </LinearLayout>
