@@ -1,82 +1,154 @@
 package com.example.zazulinsepr_1_2
 
+import android.app.AlertDialog
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
-import com.google.android.material.snackbar.Snackbar
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.zazulinsepr_1_2.data.AppDatabase
+import com.example.zazulinsepr_1_2.data.Note
+import com.example.zazulinsepr_1_2.data.NoteDao
+import com.example.zazulinsepr_1_2.ui.SimpleNotesAdapter
+import kotlinx.coroutines.launch
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [NotesFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class NotesFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var buttonAdd: Button
+    private lateinit var textEmpty: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_notes, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val saveButton = view.findViewById<Button>(R.id.btnSaveNote)
-        saveButton.setOnClickListener {
-            showSaveConfirmationSnackbar(view)
+
+        recyclerView = view.findViewById(R.id.rvNotes)
+        buttonAdd = view.findViewById(R.id.btnSaveNote)
+        textEmpty = view.findViewById(R.id.tvEmpty)
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        val db = AppDatabase.getDatabase(requireContext())
+        val noteDao = db.noteDao()
+
+        observeNotes(noteDao)
+
+        buttonAdd.setOnClickListener {
+            showAddNoteDialog(noteDao)
         }
     }
 
-    private fun showSaveConfirmationSnackbar(view: View) {
-        Snackbar.make(view, "Заметка сохранена успешно!", Snackbar.LENGTH_LONG)
-            .setAction("Отменить") {
-                onSaveCancelled()
-            }.show()
-    }
+    private fun observeNotes(noteDao: NoteDao) {
+        noteDao.getAllNotes().observe(viewLifecycleOwner) { notes ->
+            if (notes.isEmpty()) {
+                textEmpty.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                textEmpty.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
 
-    private fun onSaveCancelled() {
-        Toast.makeText(requireContext(), "Сохранение отменено", Toast.LENGTH_SHORT).show()
-    }
-
-
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment NotesFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            NotesFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+                recyclerView.adapter = SimpleNotesAdapter(notes) { note ->
+                    showEditNoteDialog(noteDao, note)
                 }
             }
+        }
+    }
+
+    private fun showAddNoteDialog(noteDao: NoteDao) {
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_add_note, null)
+
+        val editTitle = dialogView.findViewById<EditText>(R.id.etNoteTitle)
+        val editContent = dialogView.findViewById<EditText>(R.id.etNoteContent)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Новая заметка")
+            .setView(dialogView)
+            .setPositiveButton("Сохранить") { dialog, _ ->
+                val title = editTitle.text.toString().trim()
+                val content = editContent.text.toString().trim()
+
+                if (title.isNotEmpty() && content.isNotEmpty()) {
+                    addNewNote(noteDao, title, content)
+                } else {
+                    Toast.makeText(requireContext(), "Заполните оба поля", Toast.LENGTH_SHORT).show()
+                }
+
+                dialog.dismiss()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun showEditNoteDialog(noteDao: NoteDao, note: Note) {
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_add_note, null)
+
+        val editTitle = dialogView.findViewById<EditText>(R.id.etNoteTitle)
+        val editContent = dialogView.findViewById<EditText>(R.id.etNoteContent)
+
+        // Заполняем текущими данными
+        editTitle.setText(note.title)
+        editContent.setText(note.content)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Редактировать заметку")
+            .setView(dialogView)
+            .setPositiveButton("Сохранить", null)
+            .setNeutralButton("Удалить", null)
+            .setNegativeButton("Отмена", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val buttonSave = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            val buttonDelete = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+
+            buttonSave.setOnClickListener {
+                val newTitle = editTitle.text.toString().trim()
+                val newContent = editContent.text.toString().trim()
+
+                if (newTitle.isEmpty() || newContent.isEmpty()) {
+                    Toast.makeText(requireContext(), "Поля не должны быть пустыми", Toast.LENGTH_SHORT).show()
+                } else {
+                    lifecycleScope.launch {
+                        val updatedNote = note.copy(title = newTitle, content = newContent)
+                        noteDao.update(updatedNote)
+                        Toast.makeText(requireContext(), "Заметка обновлена", Toast.LENGTH_SHORT).show()
+                    }
+                    dialog.dismiss()
+                }
+            }
+
+            buttonDelete.setOnClickListener {
+                lifecycleScope.launch {
+                    noteDao.delete(note)
+                    Toast.makeText(requireContext(), "Заметка удалена", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun addNewNote(noteDao: NoteDao, title: String, content: String) {
+        lifecycleScope.launch {
+            val note = Note(title = title, content = content)
+            noteDao.insert(note)
+            Toast.makeText(requireContext(), "Заметка сохранена", Toast.LENGTH_SHORT).show()
+        }
     }
 }
