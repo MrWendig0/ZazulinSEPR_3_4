@@ -1,14 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFEB3B"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F3E5F5">
+
+    <!-- Заголовок -->
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Список задач"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Статус -->
+    <TextView
+        android:id="@+id/textStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Нажмите кнопку чтобы загрузить задачи"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:padding="8dp"
+        android:background="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Кнопка загрузки -->
+    <Button
+        android:id="@+id/buttonLoad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Загрузить задачи"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Контейнер со списком -->
+    <LinearLayout
+        android:id="@+id/todosLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@android:color/white"
+        android:padding="8dp"
+        android:elevation="4dp"
+        android:visibility="gone">
+
+        <!-- Список задач -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <!-- Индикатор загрузки -->
+    <ProgressBar
+        android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Это первая вкладка"
-        android:textSize="24sp"
-        android:textStyle="bold" />
+        android:layout_gravity="center"
+        android:layout_margin="16dp"
+        android:visibility="gone" />
 </LinearLayout>

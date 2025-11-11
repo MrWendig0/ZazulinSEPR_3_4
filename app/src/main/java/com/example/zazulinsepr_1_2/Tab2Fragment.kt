@@ -6,6 +6,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import com.example.zazulinsepr_1_2.testApiPackage.RetrofitClientAdvice
+import android.widget.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.zazulinsepr_1_2.apiPackage.RetrofitClient
+import com.example.zazulinsepr_1_2.apiPackage.Todo
+import com.example.zazulinsepr_1_2.apiPackage.TodoAdapter
+import com.example.zazulinsepr_1_2.testApiPackage.AdviceResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
     // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -21,6 +32,10 @@ class Tab2Fragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
+    private lateinit var textAdvice: TextView
+    private lateinit var buttonGetAdvice: Button
+    private lateinit var progressBar: ProgressBar
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +59,46 @@ class Tab2Fragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        textAdvice = view.findViewById(R.id.textAdvice)
+        buttonGetAdvice = view.findViewById(R.id.buttonGetAdvice)
+        progressBar = view.findViewById(R.id.progressBarAdvice)
+
+        buttonGetAdvice.setOnClickListener {
+            loadAdvice()
+        }
+
         showLoadingToast()
     }
+
+
+    private fun loadAdvice() {
+        progressBar.visibility = View.VISIBLE
+        buttonGetAdvice.isEnabled = false
+
+        val call = RetrofitClientAdvice.adviceApi.getRandomAdvice()
+        call.enqueue(object : Callback<AdviceResponse> {
+            override fun onResponse(call: Call<AdviceResponse>, response: Response<AdviceResponse>) {
+                progressBar.visibility = View.GONE
+                buttonGetAdvice.isEnabled = true
+
+                if (response.isSuccessful) {
+                    val advice = response.body()?.slip?.advice ?: "Совет не найден"
+                    textAdvice.text = advice
+                } else {
+                    textAdvice.text = "Ошибка сервера: ${response.code()}"
+                }
+            }
+
+            override fun onFailure(call: Call<AdviceResponse>, t: Throwable) {
+                progressBar.visibility = View.GONE
+                buttonGetAdvice.isEnabled = true
+                textAdvice.text = "Ошибка сети: ${t.message}"
+            }
+        })
+    }
+
+
 
 
     companion object {
